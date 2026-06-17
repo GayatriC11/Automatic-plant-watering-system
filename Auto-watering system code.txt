@@ -1,0 +1,188 @@
+#include<Servo.h>
+#include <LiquidCrystal_I2C.h>
+Servo servo;
+int servo1 = 6;
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+
+int piezo = 9;
+int sensorPower = A0;
+int sensorPin = A1;
+int ledWet = 12;
+int ledDry = 13;
+int moisture = 0;
+
+// Motor pins
+int motorA_ENA = 11, 
+motorA_IN1 = 5, 
+motorA_IN2 = 4;
+int motorB_ENB = 10, 
+motorB_IN3 = 3, 
+motorB_IN4 = 2;
+
+// Ultrasonic pins
+int trigPin = 7;
+int echoPin = 8;
+long duration;
+float distance;
+
+void setup() 
+{
+  pinMode(sensorPower, OUTPUT);
+  pinMode(sensorPin, INPUT);
+  pinMode(ledWet, OUTPUT);
+  pinMode(ledDry, OUTPUT);
+  pinMode(piezo, OUTPUT);
+
+  pinMode(motorA_ENA, OUTPUT); 
+  pinMode(motorA_IN1, OUTPUT); 
+  pinMode(motorA_IN2, OUTPUT);
+  pinMode(motorB_ENB, OUTPUT); 
+  pinMode(motorB_IN3, OUTPUT); 
+  pinMode(motorB_IN4, OUTPUT);
+
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+
+  Serial.begin(9600);
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("Soil & Distance");
+  lcd.setCursor(0, 1);
+  lcd.print("Monitoring...");
+  delay(2000);
+  lcd.clear();
+  
+  servo.attach(6);
+
+}
+
+void loop() 
+{
+  // Moisture sensor
+  digitalWrite(sensorPower, HIGH); delay(10);
+  moisture = analogRead(sensorPin);
+  digitalWrite(sensorPower, LOW);
+
+  Serial.print("Moisture: "); 
+  Serial.println(moisture);
+  lcd.setCursor(0, 0); 
+  lcd.print("Moist: "); 
+  lcd.print(moisture); 
+  lcd.print("   ");
+
+  digitalWrite(ledWet, LOW); 
+  digitalWrite(ledDry, LOW);
+
+  if (moisture < 200)
+  {
+    digitalWrite(ledDry, HIGH); 
+    tone(piezo, 1000);
+    lcd.setCursor(0, 1); 
+    lcd.print("Dry Soil");
+    
+  // Stop Motor A
+  Serial.println("Motor A: Stopped");
+  digitalWrite(motorA_IN1, LOW);  // Set direction
+  digitalWrite(motorA_IN2, LOW);
+  analogWrite(motorA_ENA, 0);    // Set speed to 0
+  delay(1000); // Stop for 0.5 second
+
+  // Stop Motor B
+  Serial.println("Motor B: Stopped");
+  digitalWrite(motorB_IN3, LOW);  // Set direction
+  digitalWrite(motorB_IN4, LOW);
+  analogWrite(motorB_ENB, 0);    // Set speed to 0
+  delay(1000); // Stop for 0.5 second 
+   
+    
+    servo.write(90);
+    delay(1000);
+  } 
+  else if (moisture < 550) 
+  {
+    digitalWrite(ledDry,HIGH); 
+    noTone(piezo); lcd.setCursor(0,1); 
+    lcd.print("Humid Soil");
+    
+    servo.write(0);
+ 
+  // Rotate Motor A forward
+  Serial.println("Motor A: Forward");
+  digitalWrite(motorA_IN1, HIGH); // Set direction
+  digitalWrite(motorA_IN2, LOW);
+  analogWrite(motorA_ENA, 150);  // Set speed (0-255)
+  delay(1000); // Run for 2 seconds  
+    
+
+  // Rotate Motor B forward
+  Serial.println("Motor B: Forward");
+  digitalWrite(motorB_IN3, HIGH); // Set direction
+  digitalWrite(motorB_IN4, LOW);
+  analogWrite(motorB_ENB, 200);  // Set speed (0-255)
+  delay(3000); // Run for 3 seconds
+  
+  } 
+  else if (moisture < 900) 
+  {
+    digitalWrite(ledWet,HIGH); 
+    noTone(piezo); 
+    lcd.setCursor(0,1); 
+    lcd.print("Wet Soil");
+    
+    servo.write(0);
+ 
+    // Rotate Motor A forward
+  Serial.println("Motor A: Forward");
+  digitalWrite(motorA_IN1, HIGH); // Set direction
+  digitalWrite(motorA_IN2, LOW);
+  analogWrite(motorA_ENA, 150);  // Set speed (0-255)
+  delay(1000); // Run for 2 seconds
+    
+  // Rotate Motor B forward
+  Serial.println("Motor B: Forward");
+  digitalWrite(motorB_IN3, HIGH); // Set direction
+  digitalWrite(motorB_IN4, LOW);
+  analogWrite(motorB_ENB, 200);  // Set speed (0-255)
+  delay(3000); // Run for 3 seconds
+  }
+
+  // Ultrasonic sensor
+  digitalWrite(trigPin, LOW); 
+  delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH);
+  distance = (duration * 0.0343) / 2;
+
+  Serial.print("Distance: "); 
+  Serial.print(distance); 
+  Serial.println(" cm");
+  lcd.setCursor(10,0); 
+  lcd.print(distance); 
+  lcd.print("cm ");
+  
+  if(distance<50)
+  {
+   // Rotate Motor A forward
+  Serial.println("Motor A: Forward");
+  digitalWrite(motorA_IN1, HIGH); // Set direction
+  digitalWrite(motorA_IN2, LOW);
+  analogWrite(motorA_ENA, 150);  // Set speed (0-255)
+  delay(1000); // Run for 3 seconds  
+  
+  // Stop Motor B
+  Serial.println("Motor B: Stopped");
+  digitalWrite(motorB_IN3, LOW);  // Set direction
+  digitalWrite(motorB_IN4, LOW);
+  analogWrite(motorB_ENB, 0);    // Set speed to 0
+  delay(1000); // Stop for 3 secondS 
+  }  
+  
+
+  delay(500);
+}
+  
